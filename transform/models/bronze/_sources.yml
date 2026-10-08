@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: skillcorner
+    description: >
+      Files as they were downloaded by ingestion/ingest.py into data/landing/.
+      dbt-duckdb reads them straight off disk via `external_location` - no
+      copy step, no database server, no loader.
+    tables:
+      - name: dynamic_events
+        description: One CSV per match, 294 columns, four event types stacked in one table.
+        meta:
+          external_location: "read_csv('../data/landing/dynamic_events/*.csv', union_by_name=true, sample_size=-1, filename=true)"
+
+      - name: match_info
+        description: One JSON per match - lineups, minutes played, pitch dimensions.
+        meta:
+          external_location: "read_json('../data/landing/match_info/*.json', union_by_name=true, filename=true)"

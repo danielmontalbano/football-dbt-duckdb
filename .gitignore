@@ -1,0 +1,13 @@
+# Data is downloaded, never committed - `make ingest` reproduces it.
+data/landing/*
+data/warehouse/*
+!data/landing/.gitkeep
+!data/warehouse/.gitkeep
+
+.venv/
+__pycache__/
+transform/target/
+transform/logs/
+transform/dbt_packages/
+.DS_Store
+transform/.user.yml

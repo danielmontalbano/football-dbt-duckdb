@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: silver_matches
+    description: One clean row per match.
+    columns:
+      - name: match_id
+        data_tests: [not_null, unique]
+      - name: match_date
+        data_tests: [not_null]
+      - name: home_team_name
+        data_tests: [not_null]
+      - name: away_team_name
+        data_tests: [not_null]
+
+  - name: silver_player_matches
+    description: >
+      One row per player who actually played, with the three clocks every
+      rate metric downstream depends on.
+    columns:
+      - name: player_match_id
+        data_tests: [not_null, unique]
+      - name: match_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                  to: ref('silver_matches')
+                  field: match_id
+      - name: player_id
+        data_tests: [not_null]
+      - name: team_name
+        description: Resolved from the match's home/away sides - a null means the join failed.
+        data_tests: [not_null]
+      - name: minutes_played
+        data_tests: [not_null]
+      - name: position_group
+        data_tests:
+          - accepted_values:
+              arguments:
+                  values: [Center Forward, Central Defender, Full Back, Midfield, Wide Attacker, Other]
+
+  - name: silver_off_ball_runs
+    description: One row per off-ball run - a 15+ km/h movement made while a team-mate has the ball.
+    columns:
+      - name: run_id
+        data_tests: [not_null, unique]
+      - name: match_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                  to: ref('silver_matches')
+                  field: match_id
+      - name: player_id
+        data_tests: [not_null]
+      - name: run_type
+        description: SkillCorner's ten off-ball run categories.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                  values:
+                    [behind, coming_short, cross_receiver, dropping_off, overlap,
+                     pulling_half_space, pulling_wide, run_ahead_of_the_ball, support, underlap]
+
+  - name: silver_passing_options
+    description: One row per moment a player was a genuinely available pass target.
+    columns:
+      - name: passing_option_id
+        data_tests: [not_null, unique]
+      - name: match_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                  to: ref('silver_matches')
+                  field: match_id
+      - name: player_id
+        data_tests: [not_null]
+
+  - name: silver_on_ball_engagements
+    description: One row per defensive engagement on the player in possession.
+    columns:
+      - name: engagement_id
+        data_tests: [not_null, unique]
+      - name: match_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                  to: ref('silver_matches')
+                  field: match_id
+      - name: engagement_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                  values: [pressing, pressure, counter_press, recovery_press, other]

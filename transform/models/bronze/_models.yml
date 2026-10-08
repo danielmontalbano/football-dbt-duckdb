@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: bronze_dynamic_events
+    description: >
+      Every dynamic event from every match, exactly as delivered: 294 columns
+      with four event types stacked on top of each other, so most columns are
+      null for most rows. Only provenance columns are added.
+    columns:
+      - name: event_id
+        description: Unique *within a match only* - see the grain test in tests/.
+        data_tests: [not_null]
+      - name: match_id
+        data_tests: [not_null]
+      - name: event_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                  values: [off_ball_run, passing_option, on_ball_engagement, player_possession]
+      - name: _source_file
+        description: Which landed file this row came from.
+        data_tests: [not_null]
+
+  - name: bronze_matches
+    description: One row per match, nested objects still nested.
+    columns:
+      - name: match_id
+        data_tests: [not_null, unique]
+
+  - name: bronze_match_players
+    description: The players array of each match JSON, unnested. Includes unused substitutes.
+    columns:
+      - name: match_id
+        data_tests: [not_null]
+      - name: player_id
+        data_tests: [not_null]

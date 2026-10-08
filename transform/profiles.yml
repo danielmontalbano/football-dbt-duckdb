@@ -1,0 +1,9 @@
+# Everything is local: DuckDB is a single file on disk, no server, no cloud, no cost.
+# Paths are relative to the transform/ directory (the Makefile always runs dbt from there).
+football_dbt_duckdb:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../data/warehouse/football.duckdb
+      threads: 4
