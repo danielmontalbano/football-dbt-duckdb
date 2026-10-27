@@ -4,7 +4,7 @@ VENV := .venv
 PY   := $(VENV)/bin/python
 DBT  := cd transform && DBT_PROFILES_DIR=. ../$(VENV)/bin/dbt
 
-.PHONY: setup ingest update build test docs query clean help
+.PHONY: setup ingest update build test docs query notebook clean help
 
 help:
 	@echo "make setup    - create the virtualenv and install dbt-duckdb"
@@ -14,6 +14,7 @@ help:
 	@echo "make test     - run the tests only"
 	@echo "make docs     - build and serve the dbt docs + lineage graph"
 	@echo "make query    - open a DuckDB shell on the warehouse"
+	@echo "make notebook - open the example notebook (installs Jupyter, pandas, matplotlib)"
 	@echo "make clean    - delete the warehouse (landed files are kept)"
 
 setup:
@@ -36,6 +37,10 @@ docs:
 
 query:
 	duckdb data/warehouse/football.duckdb
+
+notebook:
+	uv pip install --python $(PY) -r pyproject.toml --extra notebook
+	$(VENV)/bin/jupyter lab notebooks/explore.ipynb
 
 clean:
 	rm -f data/warehouse/football.duckdb

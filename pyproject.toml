@@ -10,5 +10,12 @@ dependencies = [
     "requests>=2.31",
 ]
 
+[project.optional-dependencies]
+notebook = [
+    "jupyterlab>=4.2",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+]
+
 [tool.uv]
 package = false

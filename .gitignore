@@ -11,3 +11,4 @@ transform/logs/
 transform/dbt_packages/
 .DS_Store
 transform/.user.yml
+.ipynb_checkpoints/

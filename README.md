@@ -47,10 +47,34 @@ make update    # ingest + build: pick up new matches and rebuild
 make test      # tests only
 make docs      # dbt docs + lineage graph
 make query     # DuckDB shell on the warehouse
+make notebook  # example notebook with ready-made charts
 make clean     # drop the warehouse; landed files are kept
 ```
 
 </details>
+
+### Explore in a notebook
+
+```bash
+make notebook
+```
+
+[`notebooks/explore.ipynb`](notebooks/explore.ipynb) opens the warehouse read-only, loads
+the gold models into pandas and draws a ready-made chart of the most active off-ball runners.
+The first run installs Jupyter, pandas and matplotlib into the same virtualenv. Close the
+notebook (or run its last cell) before the next `make build`, because DuckDB allows only one
+writer.
+
+![Most active runners: off-ball runs per 30 minutes in possession, players with at least 45 minutes in possession](docs/img/runners.png)
+
+### Working with Claude Code
+
+The repo ships a project skill in
+[`.claude/skills/football-dbt-duckdb/`](.claude/skills/football-dbt-duckdb/SKILL.md). When
+you open the project in [Claude Code](https://claude.com/claude-code), it tells Claude how
+to run the pipeline, which modelling rules to keep, the known gotchas and the chart
+conventions, so you can ask things like "add a silver model for player possessions" or
+"chart pressing intensity by team".
 
 ---
 
@@ -306,6 +330,9 @@ transform/
   models/gold/                      3 models
   tests/                            3 singular tests
 docs/add-a-source.md                tutorial: add a new file type
+docs/img/                           chart images used in this README
+notebooks/explore.ipynb             gold layer in pandas + example charts
+.claude/skills/                     project skill for Claude Code
 examples.sql                        example gold-layer queries
 data/landing/                       downloaded files (gitignored)
 data/warehouse/football.duckdb      the warehouse (gitignored)
