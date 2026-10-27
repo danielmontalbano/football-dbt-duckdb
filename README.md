@@ -1,9 +1,6 @@
 # football-dbt-duckdb
 
-An open source, laptop-sized football data stack: **dbt + DuckDB on SkillCorner open
-data**. Everything here is open source and the data is openly licensed, so it
-runs on your laptop in a few minutes with no cloud account, no credentials and
-no cost.
+A use case for open-source analytics tools: **dbt + DuckDB on SkillCorner's open football data.** A complete local pipeline that ingests the data, builds bronze, silver and gold layers, runs tests and generates docs, with no cloud, credentials or cost.
 
 You can use it in two ways:
 
