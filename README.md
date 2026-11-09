@@ -5,7 +5,7 @@ A use case for open-source analytics tools: **dbt + DuckDB on SkillCorner's open
 You can use it in two ways:
 
 - **Learn analytics engineering.** A complete, working pipeline on real
-  tracking-derived data (ingestion, bronze / silver / gold layers, tests, docs
+  football data (ingestion, bronze / silver / gold layers, tests, docs
   and lineage) that you can read, run and extend.
 - **Test dbt models locally.** Develop and test models against a single DuckDB
   file, then point `profiles.yml` at your warehouse when they're ready.
