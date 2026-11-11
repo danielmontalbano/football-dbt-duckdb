@@ -55,10 +55,16 @@ the `PASS=… ERROR=…` line.
 
 ## Gotchas already paid for
 
-- **The provider revises files it has already published** (e.g. the September 2026
+- **The provider revises files it has already published** (e.g. the 14 September 2026
   "dynamic events v3" refresh). `ingest.py` only downloads *missing* files, so an old
-  checkout keeps stale versions forever and can mix revisions. If numbers don't match a
-  fresh clone, re-download with `--force`.
+  checkout keeps stale versions forever and can mix revisions. Quick check:
+  `find data/landing -type f ! -newermt 2026-09-14` lists files downloaded before v3
+  (no output = all current).
+  If so, or if numbers don't match a fresh clone, re-download with `--force` (ask the
+  user first; it rewrites ~90 MB).
+- **Team possession clocks are approximate.** `team_minutes_tip` / `team_minutes_otip` in
+  `gold_team_match_summary` are the squad's `max(minutes_tip/otip)`, assuming someone
+  played the whole match.
 - **DuckDB allows one writer.** An open connection — the notebook, a `duckdb` shell, a
   Python session — makes `make build` fail with `Could not set lock on file`. Close it
   (`con.close()` / restart the kernel) and rebuild. Open the warehouse with
@@ -79,6 +85,36 @@ duckdb -readonly data/warehouse/football.duckdb -c "select ... from main_gold.<m
 ```
 
 Prefer gold; drop to silver only for event-level detail (run type, coordinates, xThreat).
+
+### Which column answers what
+
+| Question about… | Count | Rate | Where |
+|---|---|---|---|
+| Off-ball movement | `off_ball_runs` | `off_ball_runs_per_30_tip` | all three gold models |
+| Runs in behind | `runs_in_behind` | `runs_in_behind_per_30_tip` | season, player |
+| Dangerous runs | `dangerous_runs` | `dangerous_runs_per_30_tip` | player |
+| Being an option | `passing_options`, `dangerous_options` | `passing_options_per_30_tip`, `dangerous_options_per_30_tip` | season, player (match: dangerous only) |
+| Pressing, all types | `on_ball_engagements` | `engagements_per_30_otip` | all three gold models |
+| Counter-pressing | `counter_press_engagements` | `counter_press_per_30_otip` | season, player (match: count only) |
+| Other press types | `pressing_engagements`, `recovery_press_engagements` | compute with the per-30 rule | player |
+| Defensive outcomes | `forced_backward_passes`, `times_beaten`, `danger_stopped` | — | player (team: `forced_backward_passes`) |
+
+Counter-press is `engagement_type = 'counter_press'` in `silver_on_ball_engagements`; the
+five types are `pressing`, `pressure`, `counter_press`, `recovery_press`, `other`. Off-ball
+run types live in `silver_off_ball_runs.run_type` (10 values).
+
+### Reading a team ranking
+
+A season rate alone overstates certainty. Before naming a "top" team:
+
+1. Show `matches_in_sample` and the count behind the rate.
+2. Check the per-match spread from `gold_team_match_summary` (per-match rate = count × 30 /
+   `team_minutes_otip` or `_tip`). If the top teams' ranges overlap, say it's a group, not
+   an order.
+3. Name the denominator's bias when it matters: per-30-OTIP flatters teams that rarely lose
+   the ball for events triggered by losing it (counter-press). Offer a second view — per
+   match, or share of all engagements — when the two disagree.
+4. Look at who they played: with 1–7 matches, one opponent can dominate a team's sample.
 
 ## Charts
 

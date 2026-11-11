@@ -1,7 +1,7 @@
 -- Gold: one row per team across all of its matches in the sample.
 --
 -- The season grain. Nothing here is a ranking: teams appear a different
--- number of times in the open dataset (one to four matches), so
+-- number of times in the open dataset (one to seven matches), so
 -- `matches_in_sample` is carried as a column and any reading of the table
 -- has to account for it.
 --
