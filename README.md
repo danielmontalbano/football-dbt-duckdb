@@ -15,7 +15,7 @@ You can use it in two ways:
 ## Quickstart
 
 You need Python 3.10+ and [uv](https://docs.astral.sh/uv/). The `duckdb` CLI
-is optional, for querying outside dbt.
+(1.1 or newer) is optional, for querying outside dbt.
 
 ```bash
 make setup     # create a virtualenv and install dbt-duckdb

@@ -6,7 +6,8 @@ requires-python = ">=3.10"
 dependencies = [
     "dbt-core>=1.12",
     "dbt-duckdb>=1.11",
-    "duckdb>=1.1",
+    # Below 2: DuckDB 2 writes a file format that 1.x command-line clients can't open.
+    "duckdb>=1.1,<2",
     "requests>=2.31",
 ]
 
