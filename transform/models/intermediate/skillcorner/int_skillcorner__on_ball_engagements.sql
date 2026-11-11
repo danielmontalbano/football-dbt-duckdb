@@ -1,4 +1,4 @@
--- Silver: on-ball engagements, one row per defensive engagement.
+-- Intermediate: on-ball engagements, one row per defensive engagement.
 --
 -- The out-of-possession counterpart: a defender actively pressing,
 -- containing or challenging the player on the ball. Unlike a "tackle" or
@@ -42,5 +42,5 @@ select
     cast(force_backward as boolean) as forced_backward_pass,
     cast(pressing_chain as boolean) as part_of_pressing_chain
 
-from {{ ref('bronze_dynamic_events') }}
+from {{ ref('stg_skillcorner__dynamic_events') }}
 where event_type = 'on_ball_engagement'

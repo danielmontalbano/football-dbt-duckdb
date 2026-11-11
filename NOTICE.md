@@ -10,5 +10,6 @@ credit SkillCorner.
 Column definitions come from *Dynamic Events CSV Specifications* (2025-02-16),
 published by SkillCorner.
 
-The pipeline code in this repository is independent of, and not endorsed by,
-SkillCorner.
+No provider data is stored in this repository: it is downloaded to your
+machine when you run the ingestion script. The pipeline code is independent
+of, and not endorsed by, SkillCorner.

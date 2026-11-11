@@ -1,9 +1,9 @@
 version: 2
 
 models:
-  - name: bronze_dynamic_events
+  - name: stg_skillcorner__dynamic_events
     description: >
-      Every dynamic event from every match, exactly as delivered: 294 columns
+      Every dynamic event from every match, exactly as delivered: 322 columns
       with four event types stacked on top of each other, so most columns are
       null for most rows. Only provenance columns are added.
     columns:
@@ -19,16 +19,22 @@ models:
               arguments:
                   values: [off_ball_run, passing_option, on_ball_engagement, player_possession]
       - name: _source_file
-        description: Which landed file this row came from.
+        description: Which raw file this row came from.
         data_tests: [not_null]
 
-  - name: bronze_matches
-    description: One row per match, nested objects still nested.
+  - name: stg_skillcorner__matches
+    description: One flat row per match.
     columns:
       - name: match_id
         data_tests: [not_null, unique]
+      - name: match_date
+        data_tests: [not_null]
+      - name: home_team_name
+        data_tests: [not_null]
+      - name: away_team_name
+        data_tests: [not_null]
 
-  - name: bronze_match_players
+  - name: stg_skillcorner__match_players
     description: The players array of each match JSON, unnested. Includes unused substitutes.
     columns:
       - name: match_id

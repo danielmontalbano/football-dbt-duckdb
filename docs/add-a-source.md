@@ -1,16 +1,16 @@
 # Add a source
 
 This guide walks you through adding a new file type to the pipeline, from
-download to a gold model you can query. The same five steps work for any
-provider, but the example uses a file SkillCorner already publishes and this
-project doesn't use yet: **Phases of Play**.
+download to a mart you can query. The same steps work for any provider, but
+the example uses a file SkillCorner already publishes and this project doesn't
+use yet: **Phases of Play**.
 
 By the end you will have:
 
-- `{id}_phases_of_play.csv` landed for every match
-- `bronze_phases_of_play`, the file as delivered
-- `silver_phases_of_play`, typed, with a proper key
-- `gold_team_phase_summary`, how much time each team spends in each phase
+- `{id}_phases_of_play.csv` downloaded for every match
+- `stg_skillcorner__phases_of_play`, the file as delivered
+- `int_skillcorner__phases_of_play`, typed, with a proper key
+- `team_phase_summary`, how much time each team spends in each phase
 
 Budget about 30 minutes. You need the project set up (`make setup`) and built
 once (`make ingest && make build`).
@@ -45,16 +45,16 @@ Answer three questions before moving on:
    every match, so the real key is `(match_id, index)`, the same trap as
    `event_id` in dynamic events.
 3. **How does it join to what you already have?** `match_id` joins to
-   `silver_matches`, and `team_in_possession_id` joins to the team ids there.
-   The provider is the same, so the ids already agree. A new provider needs an
-   id mapping, which is covered at the end of this guide.
+   `stg_skillcorner__matches`, and `team_in_possession_id` joins to the team
+   ids there. The provider is the same, so the ids already agree. A new
+   provider needs an id mapping, which is covered at the end of this guide.
 
 ---
 
-## Step 1: Land the files (`ingestion/ingest.py`)
+## Step 1: Download the files (`ingestion/skillcorner.py`)
 
-Ingestion copies files into `data/landing/`, byte for byte. It doesn't parse
-or clean anything; that's dbt's job.
+Ingestion copies files into `data/raw/skillcorner/`, byte for byte. It doesn't
+parse or clean anything; that's dbt's job.
 
 Add the new file to `match_files()`:
 
@@ -81,12 +81,12 @@ file is missing for every match and downloads just that file. You don't need
 `--force`.
 
 > **One folder per file type.** Each file type gets its own folder under
-> `data/landing/`, so the dbt source can read it with a single glob. Don't mix
-> file types in one folder.
+> `data/raw/<provider>/`, so the dbt source can read it with a single glob.
+> Don't mix file types in one folder.
 
 ---
 
-## Step 2: Declare the source (`transform/models/bronze/_sources.yml`)
+## Step 2: Declare the source (`transform/models/staging/skillcorner/_skillcorner__sources.yml`)
 
 Tell dbt where the files are. dbt-duckdb reads them straight off disk, so
 there's no load step:
@@ -95,29 +95,34 @@ there's no load step:
       - name: phases_of_play
         description: One CSV per match, one row per phase of play.
         meta:
-          external_location: "read_csv('../data/landing/phases_of_play/*.csv', union_by_name=true, sample_size=-1, filename=true)"
+          external_location: "read_csv('../data/raw/skillcorner/phases_of_play/*.csv', union_by_name=true, sample_size=-1, filename=true)"
 ```
 
 What each option does:
 
 | Option | Why |
 |---|---|
-| `../data/landing/...` | dbt runs from `transform/`, so paths are relative to it |
+| `../data/raw/...` | dbt runs from `transform/`, so paths are relative to it |
 | `union_by_name=true` | Columns are matched by name, so a file with an extra or reordered column doesn't break the read |
 | `sample_size=-1` | DuckDB reads every row to infer types, instead of guessing from the first few thousand |
-| `filename=true` | Adds a `filename` column, which becomes `_source_file` in bronze |
+| `filename=true` | Adds a `filename` column, which becomes `_source_file` in staging |
 
-> **Land the files before you build.** If the glob matches no files, DuckDB
-> stops with `No files found that match the pattern`. Run `make ingest` first.
+> **Download the files before you build.** If the glob matches no files,
+> DuckDB stops with `No files found that match the pattern`. Run `make ingest`
+> first.
 
 ---
 
-## Step 3: Bronze, the file as delivered
+## Step 3: Staging, the file as delivered
 
-Create `transform/models/bronze/bronze_phases_of_play.sql`:
+A staging model has exactly one source and is named
+`stg_<provider>__<entity>`, with two underscores between provider and entity.
+
+Create `transform/models/staging/skillcorner/stg_skillcorner__phases_of_play.sql`:
 
 ```sql
--- Bronze: phases of play, untouched.
+-- Staging: phases of play, as delivered.
+-- The provider's column names are already snake_case, so nothing is renamed.
 -- The only additions are provenance: which file each row came from and when
 -- it was loaded.
 
@@ -128,14 +133,14 @@ select
 from {{ source('skillcorner', 'phases_of_play') }}
 ```
 
-Bronze has one rule: **don't change values.** Don't rename columns, filter
-rows or fix anything here. If a gold number is ever disputed, bronze is what
-you compare with the original file.
+Staging has one rule: **no business logic.** It may rename, cast and flatten,
+but it doesn't filter rows, join other models or fix values. If a mart number
+is ever disputed, staging is what you compare with the original file.
 
-Add basic tests to `transform/models/bronze/_models.yml`:
+Add basic tests to `transform/models/staging/skillcorner/_skillcorner__models.yml`:
 
 ```yaml
-  - name: bronze_phases_of_play
+  - name: stg_skillcorner__phases_of_play
     description: Every phase of play from every match, exactly as delivered.
     columns:
       - name: match_id
@@ -149,15 +154,15 @@ Add basic tests to `transform/models/bronze/_models.yml`:
 
 ---
 
-## Step 4: Silver, typed and keyed
+## Step 4: Intermediate, typed and keyed
 
-Silver is where the file becomes pleasant to use. Pick the columns you need,
-cast them, rename them so they read clearly, and build the real key.
+Intermediate is where the file becomes pleasant to use. Pick the columns you
+need, cast them, rename them so they read clearly, and build the real key.
 
-Create `transform/models/silver/silver_phases_of_play.sql`:
+Create `transform/models/intermediate/skillcorner/int_skillcorner__phases_of_play.sql`:
 
 ```sql
--- Silver: one row per phase of play.
+-- Intermediate: one row per phase of play.
 --
 -- A phase is a stretch of play with one in-possession behaviour (build-up,
 -- create, finish, ...) and one out-of-possession shape (high, medium or low
@@ -185,13 +190,13 @@ select
     cast(team_possession_lead_to_shot as boolean) as led_to_shot,
     cast(team_possession_lead_to_goal as boolean) as led_to_goal
 
-from {{ ref('bronze_phases_of_play') }}
+from {{ ref('stg_skillcorner__phases_of_play') }}
 ```
 
-Add tests to `transform/models/silver/_models.yml`:
+Add tests to `transform/models/intermediate/skillcorner/_int_skillcorner__models.yml`:
 
 ```yaml
-  - name: silver_phases_of_play
+  - name: int_skillcorner__phases_of_play
     description: One row per phase of play.
     columns:
       - name: phase_id
@@ -201,7 +206,7 @@ Add tests to `transform/models/silver/_models.yml`:
           - not_null
           - relationships:
               arguments:
-                  to: ref('silver_matches')
+                  to: ref('stg_skillcorner__matches')
                   field: match_id
       - name: in_possession_phase
         data_tests:
@@ -217,20 +222,20 @@ Each test protects you from a different failure:
 - `relationships` fails if a phases file arrives for a match that has no match
   file.
 - `accepted_values` fails if SkillCorner adds a new phase type, instead of the
-  gold model quietly changing shape. The eight values listed are the ones in
-  the current twenty matches.
+  mart quietly changing shape. The eight values listed are the ones in the
+  current twenty matches.
 
 ---
 
-## Step 5: Gold, answer a question
+## Step 5: Mart, answer a question
 
-A gold model is named after the question it answers. This one answers **"How
-does each team spend its time on the ball?"**
+A mart is named after the question it answers, with no prefix. This one
+answers **"How does each team spend its time on the ball?"**
 
-Create `transform/models/gold/gold_team_phase_summary.sql`:
+Create `transform/models/marts/skillcorner/team_phase_summary.sql`:
 
 ```sql
--- Gold: time each team spends in each in-possession phase, per match.
+-- Mart: time each team spends in each in-possession phase, per match.
 -- Seconds and phase counts are kept alongside the share, so the sample size
 -- behind each percentage stays visible.
 
@@ -244,7 +249,7 @@ with phases as (
         count(*) as phases,
         round(sum(duration_seconds), 1) as seconds,
         count(*) filter (where led_to_shot) as phases_leading_to_shot
-    from {{ ref('silver_phases_of_play') }}
+    from {{ ref('int_skillcorner__phases_of_play') }}
     group by all
 
 )
@@ -266,7 +271,7 @@ make build
 ```sql
 -- make query, then:
 select team_name, in_possession_phase, phases, pct_of_possession_time
-from main_gold.gold_team_phase_summary
+from main_marts.team_phase_summary
 where match_id = 2017461
 order by team_name, pct_of_possession_time desc;
 ```
@@ -280,40 +285,51 @@ between layers:
 
 ```sql
 select
-    (select count(*) from main_bronze.bronze_phases_of_play) as bronze_rows,
-    (select count(*) from main_silver.silver_phases_of_play) as silver_rows;
+    (select count(*) from main_staging.stg_skillcorner__phases_of_play) as staging_rows,
+    (select count(*) from main_intermediate.int_skillcorner__phases_of_play) as intermediate_rows;
 ```
 
-Both should be 8,834 for the twenty current matches. Silver doesn't filter this
-file, so any difference means a cast or a join dropped rows.
+Both should be 8,834 for the twenty current matches. The intermediate model
+doesn't filter this file, so any difference means a cast or a join dropped
+rows.
 
 ---
 
 ## Checklist
 
 - [ ] Profiled the file: one row = ?, key = ?, joins on = ?
-- [ ] Added it to `ingest.py`, in its own landing folder
-- [ ] Declared it in `_sources.yml` with `filename=true`
-- [ ] Bronze: `* exclude (filename)` plus `_source_file` and `_loaded_at`, nothing else
-- [ ] Silver: explicit columns, casts, predicate-style booleans, surrogate key
+- [ ] Added it to `ingestion/skillcorner.py`, in its own folder under `data/raw/skillcorner/`
+- [ ] Declared it in `_skillcorner__sources.yml` with `filename=true`
+- [ ] Staging: one source, `_source_file` and `_loaded_at` added, no filters or joins
+- [ ] Intermediate: explicit columns, casts, predicate-style booleans, surrogate key
 - [ ] Tests: `unique` + `not_null` on the key, `relationships` on `match_id`, `accepted_values` on categories
-- [ ] Gold: named for its question, counts kept next to every rate
-- [ ] Row counts reconcile from bronze to silver
+- [ ] Mart: named for its question, counts kept next to every rate
+- [ ] Row counts reconcile from staging to intermediate
 - [ ] `make clean && make build` passes from scratch
 
 ---
 
 ## Adding a different provider
 
-The steps are the same, with three differences:
+The steps are the same, with four differences:
 
-1. **Ingestion.** If the provider publishes an index file listing what's
-   available (like SkillCorner's `matches.json`), always re-fetch it. It's how
+1. **Ingestion.** Give the provider its own script in `ingestion/` and its own
+   folder under `data/raw/`. If it publishes an index file listing what's
+   available (like SkillCorner's `matches.json`), always re-fetch it: it's how
    new data is discovered, and caching it caps the pipeline at whatever it held
-   on the first run.
-2. **The source.** Give the provider its own entry under `sources:` so lineage
-   in `make docs` shows where each model comes from.
-3. **Ids.** Another provider's match and player ids won't match SkillCorner's.
-   Before any cross-provider gold model, build a mapping model in silver that
+   on the first run. If the index also says when each item last changed,
+   record that and re-download when it moves; providers do revise files they
+   have already published.
+2. **The source.** Give the provider its own entry under `sources:` and its own
+   folder in `staging/`, `intermediate/` and `marts/`, so lineage in
+   `make docs` shows where each model comes from. Model names carry the
+   provider: `stg_<provider>__<entity>`, `int_<provider>__<entity>`.
+3. **The licence.** Read it before you download anything. Open data isn't
+   always MIT: some releases forbid redistribution or commercial use, or
+   require attribution. If the terms are stricter than the rest of the project,
+   keep that provider's models off by default with an `+enabled` flag driven by
+   a dbt var, and say so in `NOTICE.md`.
+4. **Ids.** Another provider's match and player ids won't match SkillCorner's.
+   Before any cross-provider mart, build a mapping model in intermediate that
    links the two sets of ids, and test it: `unique` on each side, and a count
    of rows that failed to map.

@@ -1,8 +1,8 @@
 # Data is downloaded, never committed - `make ingest` reproduces it.
-data/landing/*
-data/warehouse/*
-!data/landing/.gitkeep
-!data/warehouse/.gitkeep
+data/raw/*
+data/db/*
+!data/raw/.gitkeep
+!data/db/.gitkeep
 
 .venv/
 __pycache__/

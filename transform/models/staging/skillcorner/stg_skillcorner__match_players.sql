@@ -1,6 +1,7 @@
--- Bronze: the `players` array of each match JSON, unnested to one row per
--- player per match. Unnesting is a structural change, not a business rule,
--- so it belongs here: the values themselves are still exactly as delivered.
+-- Staging: the `players` array of each match JSON, unnested to one row per
+-- player per match and renamed. Unnesting is a structural change, not a
+-- business rule, so it belongs here: the values are still as delivered.
+-- Includes unused substitutes; dropping them is intermediate's job.
 
 with unnested as (
 

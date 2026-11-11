@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: gold_player_match_metrics
+  - name: player_match_metrics
     description: >
       One row per player per match. Counts plus rates normalised by the
       correct clock (per 30 min in possession / out of possession).
@@ -16,7 +16,7 @@ models:
       - name: off_ball_runs
         data_tests: [not_null]
 
-  - name: gold_team_match_summary
+  - name: team_match_summary
     description: One row per team per match.
     columns:
       - name: team_match_id
@@ -24,7 +24,7 @@ models:
       - name: team_name
         data_tests: [not_null]
 
-  - name: gold_team_season_summary
+  - name: team_season_summary
     description: >
       One row per team across every match it appears in. Teams appear a
       different number of times in the sample, so matches_in_sample is part

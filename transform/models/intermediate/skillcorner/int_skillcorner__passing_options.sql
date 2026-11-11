@@ -1,4 +1,4 @@
--- Silver: passing options, one row per option offered.
+-- Intermediate: passing options, one row per option offered.
 --
 -- A passing option is a moment where SkillCorner's receiver model says this
 -- player was a genuinely available target. It answers "how often does this
@@ -37,5 +37,5 @@ select
     cast(first_line_break as boolean) as breaks_first_line,
     cast(last_line_break as boolean) as breaks_last_line
 
-from {{ ref('bronze_dynamic_events') }}
+from {{ ref('stg_skillcorner__dynamic_events') }}
 where event_type = 'passing_option'

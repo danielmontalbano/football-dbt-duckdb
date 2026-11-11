@@ -1,4 +1,4 @@
--- Gold: one row per team across all of its matches in the sample.
+-- Mart: one row per team across all of its matches in the sample.
 --
 -- The season grain. Nothing here is a ranking: teams appear a different
 -- number of times in the open dataset (one to seven matches), so
@@ -10,7 +10,7 @@
 
 with per_match as (
 
-    select * from {{ ref('gold_team_match_summary') }}
+    select * from {{ ref('team_match_summary') }}
 
 ),
 

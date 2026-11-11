@@ -8,21 +8,21 @@ DBT  := cd transform && DBT_PROFILES_DIR=. ../$(VENV)/bin/dbt
 
 help:
 	@echo "make setup    - create the virtualenv and install dbt-duckdb"
-	@echo "make ingest   - download SkillCorner open data into data/landing/"
+	@echo "make ingest   - download SkillCorner open data into data/raw/skillcorner/"
 	@echo "make update   - fetch any new matches and rebuild"
-	@echo "make build    - run the bronze -> silver -> gold models and their tests"
+	@echo "make build    - run the staging -> intermediate -> marts models and their tests"
 	@echo "make test     - run the tests only"
 	@echo "make docs     - build and serve the dbt docs + lineage graph"
-	@echo "make query    - open a DuckDB shell on the warehouse"
+	@echo "make query    - open a DuckDB shell on the database"
 	@echo "make notebook - open the example notebook (installs Jupyter, pandas, matplotlib)"
-	@echo "make clean    - delete the warehouse (landed files are kept)"
+	@echo "make clean    - delete the database (raw files are kept)"
 
 setup:
 	uv venv $(VENV)
 	uv pip install --python $(PY) -r pyproject.toml
 
 ingest:
-	$(PY) ingestion/ingest.py
+	$(PY) ingestion/skillcorner.py
 
 update: ingest build
 
@@ -36,12 +36,12 @@ docs:
 	$(DBT) docs generate && DBT_PROFILES_DIR=. ../$(VENV)/bin/dbt docs serve
 
 query:
-	duckdb data/warehouse/football.duckdb
+	duckdb data/db/football.duckdb
 
 notebook:
 	uv pip install --python $(PY) -r pyproject.toml --extra notebook
 	$(VENV)/bin/jupyter lab notebooks/explore.ipynb
 
 clean:
-	rm -f data/warehouse/football.duckdb
+	rm -f data/db/football.duckdb
 	rm -rf transform/target transform/logs

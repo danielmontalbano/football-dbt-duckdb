@@ -8,6 +8,6 @@ select
     match_id,
     event_id,
     count(*) as n
-from {{ ref('bronze_dynamic_events') }}
+from {{ ref('stg_skillcorner__dynamic_events') }}
 group by match_id, event_id
 having count(*) > 1

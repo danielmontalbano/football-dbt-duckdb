@@ -6,5 +6,5 @@ select
     player_match_id,
     off_ball_runs,
     runs_received
-from {{ ref('gold_player_match_metrics') }}
+from {{ ref('player_match_metrics') }}
 where runs_received > off_ball_runs

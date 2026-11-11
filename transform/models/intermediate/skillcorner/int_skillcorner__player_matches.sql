@@ -1,4 +1,4 @@
--- Silver: one row per player per match, with the minutes that every rate
+-- Intermediate: one row per player per match, with the minutes that every rate
 -- metric downstream is divided by.
 --
 -- Three different clocks matter in football tracking data:
@@ -12,9 +12,9 @@
 with teams as (
 
     -- a tiny team lookup, built from the home/away sides of every match
-    select match_id, home_team_id as team_id, home_team_name as team_name from {{ ref('silver_matches') }}
+    select match_id, home_team_id as team_id, home_team_name as team_name from {{ ref('stg_skillcorner__matches') }}
     union
-    select match_id, away_team_id as team_id, away_team_name as team_name from {{ ref('silver_matches') }}
+    select match_id, away_team_id as team_id, away_team_name as team_name from {{ ref('stg_skillcorner__matches') }}
 
 )
 
@@ -34,7 +34,7 @@ select
     p.goals,
     p.yellow_cards,
     p.red_cards
-from {{ ref('bronze_match_players') }} as p
+from {{ ref('stg_skillcorner__match_players') }} as p
 left join teams as t
     on p.match_id = t.match_id
     and p.team_id = t.team_id

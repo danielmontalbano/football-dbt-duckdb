@@ -1,17 +1,18 @@
 """
-Ingestion (the 'EL' of ELT).
+Ingestion for SkillCorner open data (the 'EL' of ELT).
 
-Downloads SkillCorner open data from GitHub into a local landing zone.
-Nothing is transformed here on purpose: the landing zone holds the files
-exactly as the provider published them. All logic lives in dbt.
+Downloads SkillCorner's open A-League 2024/25 release from GitHub into
+data/raw/skillcorner/. Nothing is transformed here on purpose: data/raw holds
+the files exactly as the provider published them. All logic lives in dbt.
 
 The script is incremental and safe to re-run. The match index is always
 re-fetched, because it is how new matches are discovered; the per-match files
-are only downloaded if they are not already on disk.
+are only downloaded if they are not already on disk. SkillCorner sometimes
+republishes matches it has already released; run with --force to pick that up.
 
 Usage:
-    python ingestion/ingest.py            # fetch the index, download what is missing
-    python ingestion/ingest.py --force    # re-download everything
+    python ingestion/skillcorner.py            # fetch the index, download what is missing
+    python ingestion/skillcorner.py --force    # re-download everything
 """
 
 import argparse
@@ -22,7 +23,7 @@ from pathlib import Path
 import requests
 
 BASE_URL = "https://raw.githubusercontent.com/SkillCorner/opendata/master/data"
-LANDING = Path(__file__).resolve().parents[1] / "data" / "landing"
+LANDING = Path(__file__).resolve().parents[1] / "data" / "raw" / "skillcorner"
 
 
 def download(url: str, dest: Path, force: bool = False) -> bool:
@@ -56,7 +57,7 @@ def main() -> int:
     parser.add_argument("--force", action="store_true", help="re-download files that already exist")
     args = parser.parse_args()
 
-    print(f"Landing zone: {LANDING}")
+    print(f"Raw folder: {LANDING}")
 
     # The index is ALWAYS re-fetched. It is how a match played since the last
     # run gets discovered - caching it would make the pipeline permanently
@@ -87,7 +88,7 @@ def main() -> int:
 
     print(f"\nIngestion complete - {downloaded} file(s) written.")
     if downloaded:
-        print("Run `make build` to fold the new data into the warehouse.")
+        print("Run `make build` to fold the new data into the database.")
     return 0
 
 

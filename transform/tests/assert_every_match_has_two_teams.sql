@@ -4,6 +4,6 @@
 select
     match_id,
     count(*) as teams
-from {{ ref('gold_team_match_summary') }}
+from {{ ref('team_match_summary') }}
 group by match_id
 having count(*) != 2

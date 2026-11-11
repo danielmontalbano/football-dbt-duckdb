@@ -5,5 +5,5 @@ football_dbt_duckdb:
   outputs:
     dev:
       type: duckdb
-      path: ../data/warehouse/football.duckdb
+      path: ../data/db/football.duckdb
       threads: 4

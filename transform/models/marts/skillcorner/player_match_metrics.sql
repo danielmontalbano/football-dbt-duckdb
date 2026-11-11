@@ -1,4 +1,4 @@
--- Gold: one row per player per match, ready to be read by a human or a chart.
+-- Mart: one row per player per match, ready to be read by a human or a chart.
 --
 -- This is where the three event streams meet the minutes clock. Counts are
 -- kept (you need them to judge sample size) and each one is paired with a
@@ -19,7 +19,7 @@ with runs as (
         round(sum(distance_covered_m), 1) as run_distance_m,
         round(avg(speed_avg_kmh), 1) as avg_run_speed_kmh,
         round(sum(xthreat), 4) as run_xthreat
-    from {{ ref('silver_off_ball_runs') }}
+    from {{ ref('int_skillcorner__off_ball_runs') }}
     group by 1, 2
 
 ),
@@ -34,7 +34,7 @@ options as (
         count(*) filter (was_received) as options_received,
         count(*) filter (breaks_last_line) as options_breaking_last_line,
         round(sum(xthreat), 4) as option_xthreat
-    from {{ ref('silver_passing_options') }}
+    from {{ ref('int_skillcorner__passing_options') }}
     group by 1, 2
 
 ),
@@ -52,7 +52,7 @@ engagements as (
         count(*) filter (forced_backward_pass) as forced_backward_passes,
         count(*) filter (stopped_danger) as danger_stopped,
         round(sum(distance_covered_m), 1) as engagement_distance_m
-    from {{ ref('silver_on_ball_engagements') }}
+    from {{ ref('int_skillcorner__on_ball_engagements') }}
     group by 1, 2
 
 )
@@ -102,8 +102,8 @@ select
     {{ per_30('coalesce(e.on_ball_engagements, 0)', 'pm.minutes_otip') }} as engagements_per_30_otip,
     {{ per_30('coalesce(e.counter_press_engagements, 0)', 'pm.minutes_otip') }} as counter_press_per_30_otip
 
-from {{ ref('silver_player_matches') }} as pm
-inner join {{ ref('silver_matches') }} as m on pm.match_id = m.match_id
+from {{ ref('int_skillcorner__player_matches') }} as pm
+inner join {{ ref('stg_skillcorner__matches') }} as m on pm.match_id = m.match_id
 left join runs as r on pm.match_id = r.match_id and pm.player_id = r.player_id
 left join options as o on pm.match_id = o.match_id and pm.player_id = o.player_id
 left join engagements as e on pm.match_id = e.match_id and pm.player_id = e.player_id
