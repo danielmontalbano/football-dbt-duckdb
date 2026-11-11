@@ -1,7 +1,7 @@
 -- Examples of what the gold layer contains.
 --   duckdb data/warehouse/football.duckdb < examples.sql
 --
--- These are illustrations of the aggregation, not analysis. The sample is ten
+-- These are illustrations of the aggregation, not analysis. The sample is twenty
 -- matches, so nothing here supports a comparison between players or teams.
 .mode box
 

@@ -41,7 +41,7 @@ Answer three questions before moving on:
    from read_csv('*_phases_of_play.csv', union_by_name = true);
    ```
 
-   Across all ten matches, that returns `4520, 490, 4520`. `index` restarts at 0
+   Across all twenty matches, that returns `8834, 490, 8834`. `index` restarts at 0
    every match, so the real key is `(match_id, index)`, the same trap as
    `event_id` in dynamic events.
 3. **How does it join to what you already have?** `match_id` joins to
@@ -218,7 +218,7 @@ Each test protects you from a different failure:
   file.
 - `accepted_values` fails if SkillCorner adds a new phase type, instead of the
   gold model quietly changing shape. The eight values listed are the ones in
-  the current ten matches.
+  the current twenty matches.
 
 ---
 
@@ -284,7 +284,7 @@ select
     (select count(*) from main_silver.silver_phases_of_play) as silver_rows;
 ```
 
-Both should be 4,520 for the ten current matches. Silver doesn't filter this
+Both should be 8,834 for the twenty current matches. Silver doesn't filter this
 file, so any difference means a cast or a join dropped rows.
 
 ---

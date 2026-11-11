@@ -3,7 +3,7 @@
 This project uses the **SkillCorner Open Data** release:
 <https://github.com/SkillCorner/opendata> (MIT licence).
 
-Ten 2024/25 Australian A-League matches of broadcast tracking data and the
+Twenty 2024/25 Australian A-League matches of broadcast tracking data and the
 derived Dynamic Events, open-sourced by SkillCorner. If you build on this,
 credit SkillCorner.
 
