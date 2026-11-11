@@ -17,7 +17,7 @@ All from the project root. The virtualenv lives in `.venv/`.
 |---|---|
 | First run | `make setup ingest build` |
 | New matches + rebuild | `make update` |
-| Re-download every SkillCorner file (provider revised data) | `.venv/bin/python ingestion/skillcorner.py --force && make build` |
+| Re-download every file | `.venv/bin/python ingestion/skillcorner.py --force && make build` |
 | Build one model and its children | `cd transform && DBT_PROFILES_DIR=. ../.venv/bin/dbt build -s <model>+` |
 | Tests only | `make test` |
 | SQL shell | `make query` (or `duckdb -readonly data/db/football.duckdb`) |
@@ -74,12 +74,10 @@ Normalisation macro: `transform/macros/per_30.sql`. Singular tests: `transform/t
 
 ## Gotchas already paid for
 
-- **The provider revises files it has already published** (e.g. the 14 September 2026
-  "dynamic events v3" refresh). `ingestion/skillcorner.py` only downloads *missing* files,
-  so an old checkout keeps stale versions forever and can mix revisions. Quick check:
-  `find data/raw/skillcorner -type f ! -newermt 2026-09-14` lists files downloaded before
-  v3 (no output = all current). If so, or if numbers don't match a fresh clone,
-  re-download with `--force` (ask the user first; it rewrites ~90 MB).
+- **Files on disk are never re-checked.** `ingestion/skillcorner.py` only downloads
+  *missing* files, so if a provider revises a file after it was downloaded, an old checkout
+  keeps the old version. If numbers don't match a fresh clone, re-download with `--force`
+  (ask the user first; it rewrites ~90 MB).
 - **DuckDB allows one writer.** An open connection — the notebook, a `duckdb` shell, a
   Python session — makes `make build` fail with `Could not set lock on file`. Close it
   (`con.close()` / restart the kernel) and rebuild. Open the database with `read_only=True`

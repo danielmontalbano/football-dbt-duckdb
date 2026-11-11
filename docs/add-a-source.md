@@ -1,8 +1,38 @@
 # Add a source
 
-This guide walks you through adding a new file type to the pipeline, from
-download to a mart you can query. The same steps work for any provider, but
-the example uses a file SkillCorner already publishes and this project doesn't
+A source is a set of raw files from a provider. There are two ways to add one,
+and this guide covers both:
+
+- **[Part 1](#part-1-a-new-file-from-a-provider-you-already-have)**: a new
+  file from a provider the pipeline already uses. A worked example, start to
+  finish, with SkillCorner's Phases of Play file.
+- **[Part 2](#part-2-a-new-provider)**: a new provider. The same steps, plus
+  the few things that are new: a script, folders, a licence check and ids.
+
+## What adding a source touches
+
+Every source goes through the same six places. Nothing else in the project
+needs to change.
+
+| # | What | Where | New file, same provider | New provider |
+|---|---|---|---|---|
+| 1 | Download | `ingestion/<provider>.py` | add the file to the existing script | new script |
+| 2 | Raw files | `data/raw/<provider>/<file_type>/` | new folder for the file type | new provider folder |
+| 3 | Source | `transform/models/staging/<provider>/_<provider>__sources.yml` | add a table | new file |
+| 4 | Staging | `transform/models/staging/<provider>/stg_<provider>__<entity>.sql` | new model | new folder and model |
+| 5 | Intermediate | `transform/models/intermediate/<provider>/int_<provider>__<entity>.sql` | new model | new folder and model |
+| 6 | Mart | `transform/models/marts/<provider>/<what_it_answers>.sql` | new model | new folder and model |
+
+Each model also gets tests in the `.yml` file next to it. The schema and
+materialisation come from the layer folder (`staging/`, `intermediate/`,
+`marts/`) in `dbt_project.yml`, so a new model or a new provider folder needs
+no configuration.
+
+---
+
+# Part 1: a new file from a provider you already have
+
+The example uses a file SkillCorner already publishes and this project doesn't
 use yet: **Phases of Play**.
 
 By the end you will have:
@@ -47,7 +77,7 @@ Answer three questions before moving on:
 3. **How does it join to what you already have?** `match_id` joins to
    `stg_skillcorner__matches`, and `team_in_possession_id` joins to the team
    ids there. The provider is the same, so the ids already agree. A new
-   provider needs an id mapping, which is covered at the end of this guide.
+   provider needs an id mapping, which is covered in Part 2.
 
 ---
 
@@ -295,7 +325,7 @@ rows.
 
 ---
 
-## Checklist
+## Checklist for a new file
 
 - [ ] Profiled the file: one row = ?, key = ?, joins on = ?
 - [ ] Added it to `ingestion/skillcorner.py`, in its own folder under `data/raw/skillcorner/`
@@ -309,27 +339,126 @@ rows.
 
 ---
 
-## Adding a different provider
+# Part 2: a new provider
 
-The steps are the same, with four differences:
+Do Part 1 once first: the six places are the same. This part lists only what
+is different. `<provider>` stands for a short lowercase name, such as
+`skillcorner`.
 
-1. **Ingestion.** Give the provider its own script in `ingestion/` and its own
-   folder under `data/raw/`. If it publishes an index file listing what's
-   available (like SkillCorner's `matches.json`), always re-fetch it: it's how
-   new data is discovered, and caching it caps the pipeline at whatever it held
-   on the first run. If the index also says when each item last changed,
-   record that and re-download when it moves; providers do revise files they
-   have already published.
-2. **The source.** Give the provider its own entry under `sources:` and its own
-   folder in `staging/`, `intermediate/` and `marts/`, so lineage in
-   `make docs` shows where each model comes from. Model names carry the
-   provider: `stg_<provider>__<entity>`, `int_<provider>__<entity>`.
-3. **The licence.** Read it before you download anything. Open data isn't
-   always MIT: some releases forbid redistribution or commercial use, or
-   require attribution. If the terms are stricter than the rest of the project,
-   keep that provider's models off by default with an `+enabled` flag driven by
-   a dbt var, and say so in `NOTICE.md`.
-4. **Ids.** Another provider's match and player ids won't match SkillCorner's.
-   Before any cross-provider mart, build a mapping model in intermediate that
-   links the two sets of ids, and test it: `unique` on each side, and a count
-   of rows that failed to map.
+## Before you start: read the licence
+
+Open data isn't always MIT. Some releases forbid redistribution or commercial
+use, or require attribution. Read the terms before you download anything, then:
+
+- add the provider and its licence to `NOTICE.md`;
+- never commit the files: everything under `data/raw/` is gitignored;
+- if the terms are stricter than the rest of the project, keep that provider's
+  models off unless asked for, by adding this under each layer in
+  `dbt_project.yml`:
+
+  ```yaml
+      staging:
+        +schema: staging
+        <provider>:
+          +enabled: "{{ var('<provider>', false) }}"
+  ```
+
+  and building it with `dbt build --vars '{<provider>: true}'`.
+
+## 1. Ingestion: a script of its own
+
+Copy `ingestion/skillcorner.py` to `ingestion/<provider>.py` and change three
+things:
+
+| In the script | Change it to |
+|---|---|
+| `BASE_URL` | where the provider publishes its files |
+| `LANDING` | `data/raw/<provider>` |
+| `match_files()` and the index it loops over | the provider's own file list |
+
+Keep the two rules the existing script follows:
+
+- **Don't transform anything.** Files land exactly as published.
+- **Always re-fetch the index.** If the provider publishes a file listing what
+  is available, that is how new data gets discovered. If the index also says
+  when each item last changed, store that and download the item again when it
+  moves.
+
+Then add the script to the `ingest` target in the `Makefile`, so `make ingest`
+and `make update` run both:
+
+```make
+ingest:
+	$(PY) ingestion/skillcorner.py
+	$(PY) ingestion/<provider>.py
+```
+
+## 2. The source: its own file and folders
+
+Create one folder per layer, and declare the source in the staging folder:
+
+```
+transform/models/staging/<provider>/_<provider>__sources.yml
+transform/models/staging/<provider>/_<provider>__models.yml
+transform/models/intermediate/<provider>/_int_<provider>__models.yml
+transform/models/marts/<provider>/_<provider>__models.yml
+```
+
+```yaml
+version: 2
+
+sources:
+  - name: <provider>
+    description: Files downloaded by ingestion/<provider>.py into data/raw/<provider>/.
+    tables:
+      - name: <file_type>
+        meta:
+          external_location: "read_json('../data/raw/<provider>/<file_type>/*.json', union_by_name=true, filename=true)"
+```
+
+Use `read_csv` or `read_json` to match the files. Giving the provider its own
+`sources:` entry is what makes lineage in `make docs` show where each model
+comes from.
+
+## 3. Staging, intermediate, marts: same rules, provider in the name
+
+Follow Steps 3 to 5 of Part 1. The provider goes in the model name for staging
+and intermediate, with two underscores before the entity:
+
+- `stg_<provider>__<entity>`: one source each, renamed to snake_case, cast,
+  flattened, plus `_source_file` and `_loaded_at`. No joins, no filters.
+- `int_<provider>__<entity>`: the grain you want to work with, a real key,
+  joins to names.
+- marts: named for what they answer. Model names must be unique across the
+  project, so check a name isn't already taken by another provider's mart.
+
+Profile the files first, as in Step 0. Every provider has its own version of
+the `event_id` trap: find the real key before you write the first model, and
+pin it with a `unique` test.
+
+## 4. Ids: don't join providers until they map
+
+Another provider's match, team and player ids won't match SkillCorner's. Two
+marts from two providers can sit side by side with no mapping. Before a mart
+that *combines* them, build a mapping model in intermediate, for example
+`int_<provider>__skillcorner_match_ids`, and test it:
+
+- `unique` on each side, so one match never maps to two;
+- a count of rows that failed to map, so a gap is visible instead of silently
+  dropping matches from the join.
+
+Some providers publish the other provider's ids themselves. Use those when they
+exist; otherwise match on date and team names, and review what doesn't match
+by hand.
+
+## Checklist for a new provider
+
+- [ ] Licence read; provider added to `NOTICE.md`
+- [ ] `ingestion/<provider>.py` writes to `data/raw/<provider>/`, one folder per file type
+- [ ] Script added to the `ingest` target in the `Makefile`
+- [ ] `_<provider>__sources.yml` declares each file type with `filename=true`
+- [ ] A `<provider>/` folder in `staging/`, `intermediate/` and `marts/`
+- [ ] Models named `stg_<provider>__…` and `int_<provider>__…`; mart names unique
+- [ ] The real key found, built and tested with `unique`
+- [ ] No cross-provider mart without a tested id mapping
+- [ ] `make clean && make build` passes from scratch

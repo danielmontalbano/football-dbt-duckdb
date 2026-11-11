@@ -1,7 +1,7 @@
 [project]
 name = "football-dbt-duckdb"
 version = "0.1.0"
-description = "A use case for open-source analytics tools: dbt + DuckDB on SkillCorner's open football data, run end to end on your laptop."
+description = "A local pipeline for football data built with dbt + DuckDB, with SkillCorner open data as its first source."
 requires-python = ">=3.10"
 dependencies = [
     "dbt-core>=1.12",

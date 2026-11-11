@@ -7,8 +7,7 @@ the files exactly as the provider published them. All logic lives in dbt.
 
 The script is incremental and safe to re-run. The match index is always
 re-fetched, because it is how new matches are discovered; the per-match files
-are only downloaded if they are not already on disk. SkillCorner sometimes
-republishes matches it has already released; run with --force to pick that up.
+are only downloaded if they are not already on disk.
 
 Usage:
     python ingestion/skillcorner.py            # fetch the index, download what is missing

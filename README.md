@@ -1,6 +1,20 @@
 # football-dbt-duckdb
 
-A use case for open-source analytics tools: **dbt + DuckDB on SkillCorner's open football data.** A complete local pipeline that ingests the data, builds staging, intermediate and mart models, runs tests and generates docs, with no cloud, credentials or cost.
+A data pipeline for all use cases, built with open-source tools: **dbt + DuckDB**. It downloads raw files, builds staging, intermediate and mart models, runs tests and generates docs. It runs locally and is up and working in a couple of minutes.
+
+**The data.** As an example, the pipeline uses
+[SkillCorner's open data](https://github.com/SkillCorner/opendata): twenty
+2024/25 Australian A-League matches, MIT licensed. For each match it downloads
+two files, about 90 MB in total:
+
+- `{id}_match.json`: lineups and minutes played
+- `{id}_dynamic_events.csv`: off-ball runs, passing options and pressing,
+  derived from tracking data
+
+**Adding a source.** Nothing in the pipeline is tied to that example. Each
+provider has its own ingestion script, its own folder under `data/raw/` and its
+own folder in every dbt layer. [docs/add-a-source.md](docs/add-a-source.md)
+shows how to add a new file or a new provider, step by step.
 
 You can use it in two ways:
 
@@ -19,8 +33,8 @@ You need Python 3.10+ and [uv](https://docs.astral.sh/uv/). The `duckdb` CLI
 
 ```bash
 make setup     # create a virtualenv and install dbt-duckdb
-make ingest    # download the open data into data/raw/  (~90 MB)
-make build     # run every model and test               (~2 s)
+make ingest    # download the SkillCorner files into data/raw/  (~90 MB)
+make build     # run every model and test                       (~2 s)
 ```
 
 That's it. You now have a database at `data/db/football.duckdb`. Try the
@@ -135,10 +149,7 @@ Match 2017461
   landed   3.96 MB  2017461_dynamic_events.csv
 ```
 
-Files already on disk are never checked again. SkillCorner sometimes republishes
-matches it has already released (in September 2026 it moved them to Dynamic
-Events v3), and a plain `make update` won't pick those changes up. If your
-numbers don't match a fresh clone, re-download everything:
+To re-download every file:
 
 ```bash
 .venv/bin/python ingestion/skillcorner.py --force && make build
@@ -226,7 +237,7 @@ Things to keep in mind:
 
 - **Add a source.** [docs/add-a-source.md](docs/add-a-source.md) walks you
   through adding SkillCorner's Phases of Play file, from download to a mart,
-  in about 30 minutes.
+  in about 30 minutes, and then lists what changes for a new provider.
 - **Model possessions.** `player_possession` events are already in staging but
   have no intermediate model yet. Build `int_skillcorner__player_possessions`
   with `xshot`, `xloss` and `end_type`.
@@ -360,7 +371,7 @@ transform/
     intermediate/<provider>/        int_<provider>__<entity>
     marts/<provider>/               named for what they answer
   tests/                            singular tests
-docs/add-a-source.md                tutorial: add a new file type
+docs/add-a-source.md                guide: add a new file or a new provider
 docs/img/                           chart images used in this README
 notebooks/explore.ipynb             marts in pandas + an example chart
 .claude/skills/                     project skill for Claude Code
